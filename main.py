@@ -58,7 +58,7 @@ def parse_cmd(argv):
         if '-h' in opt_arg.keys():
             print('usage: python main.py -g <gan_type>')
             print('       python main.py -g <gan_type> -t <train_type>')
-            print('       python main.py -g <gan_type> -t realdata -d <your_data_location>')
+            print('       python main.py -g <gan_type> -t real -d <your_data_location>')
             sys.exit(0)
         if not '-g' in opt_arg.keys():
             print('unspecified GAN type, use MLE training only...')
