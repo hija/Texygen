@@ -1,13 +1,15 @@
 # coding=utf-8
 import nltk
 
+from tokenizer import tokenizer
+T = tokenizer.TweetTokenizer()
 
 def chinese_process(filein, fileout):
-    with open(filein, 'r') as infile:
-        with open(fileout, 'w') as outfile:
+    with open(filein, 'r', encoding="utf-8") as infile:
+        with open(fileout, 'w', encoding="utf-8") as outfile:
             for line in infile:
                 output = list()
-                line = nltk.word_tokenize(line)[0]
+                line = T.tokenize(line)[0]#.word_tokenize(line)[0]
                 for char in line:
                     output.append(char)
                     output.append(' ')
@@ -35,6 +37,7 @@ def code_to_text(codes, dictionary):
     paras = ""
     eof_code = len(dictionary)
     for line in codes:
+        #line = [item for sublist in [x.split() for x in line] for item in sublist]
         numbers = map(int, line)
         for number in numbers:
             if number == eof_code:
@@ -48,7 +51,8 @@ def get_tokenlized(file):
     tokenlized = list()
     with open(file) as raw:
         for text in raw:
-            text = nltk.word_tokenize(text.lower())
+            text = T.tokenize(text.lower())#nltk.word_tokenize(text.lower())
+            text = [item for sublist in text for item in sublist]
             tokenlized.append(text)
     return tokenlized
 
