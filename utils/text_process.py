@@ -1,8 +1,9 @@
 # coding=utf-8
 import nltk
 
-from tokenizer import tokenizer
-T = tokenizer.TweetTokenizer()
+from nltk.tokenize import TweetTokenizer
+
+T = TweetTokenizer()
 
 def chinese_process(filein, fileout):
     with open(filein, 'r', encoding="utf-8") as infile:
