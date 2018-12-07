@@ -38,7 +38,7 @@ def code_to_text(codes, dictionary):
     paras = ""
     eof_code = len(dictionary)
     for line in codes:
-        #line = [item for sublist in [x.split() for x in line] for item in sublist]
+        line = [item for sublist in [x.split() for x in line] for item in sublist]
         numbers = map(int, line)
         for number in numbers:
             if number == eof_code:
@@ -53,7 +53,7 @@ def get_tokenlized(file):
     with open(file) as raw:
         for text in raw:
             text = T.tokenize(text.lower())#nltk.word_tokenize(text.lower())
-            text = [item for sublist in text for item in sublist]
+            #text = [item for sublist in text for item in sublist]
             tokenlized.append(text)
     return tokenlized
 
