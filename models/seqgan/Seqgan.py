@@ -27,7 +27,7 @@ class Seqgan(Gan):
         self.num_filters = [100, 200]
         self.l2_reg_lambda = 0.2
         self.dropout_keep_prob = 0.75
-        self.batch_size = 8
+        self.batch_size = 64
         self.generate_num = 128
         self.start_token = 0
 
