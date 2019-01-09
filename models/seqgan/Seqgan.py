@@ -27,7 +27,7 @@ class Seqgan(Gan):
         self.num_filters = [100, 200]
         self.l2_reg_lambda = 0.2
         self.dropout_keep_prob = 0.75
-        self.batch_size = 64
+        self.batch_size = 8
         self.generate_num = 128
         self.start_token = 0
 
@@ -301,9 +301,9 @@ class Seqgan(Gan):
         self.init_real_metric()
 
         def get_real_test_file(dict=iw_dict):
-            with open(self.generator_file, 'r') as file:
+            with open(self.generator_file, 'r', encoding="utf-8") as file:
                 codes = get_tokenlized(self.generator_file)
-            with open(self.test_file, 'w') as outfile:
+            with open(self.test_file, 'w', encoding="utf-8") as outfile:
                 outfile.write(code_to_text(codes=codes, dictionary=dict))
 
         self.sess.run(tf.global_variables_initializer())
@@ -358,5 +358,3 @@ class Seqgan(Gan):
             self.reward.update_params()
             for _ in range(15):
                 self.train_discriminator()
-
-
