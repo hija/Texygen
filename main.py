@@ -24,7 +24,7 @@ def set_gan(gan_name):
     try:
         Gan = gans[gan_name.lower()]
         gan = Gan()
-        gan.vocab_size = 5000
+        gan.vocab_size = 30000
         gan.generate_num = 10000
         return gan
     except KeyError:
@@ -81,5 +81,11 @@ def parse_cmd(argv):
 
 
 if __name__ == '__main__':
+
+    ### Save log to file
+    import sys
+    sys.stdout = open('stdout', 'w', buffering=1)
+    sys.stderr = open('stderr', 'w', buffering=1)
+
     gan = None
     parse_cmd(sys.argv[1:])
