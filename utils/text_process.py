@@ -50,7 +50,7 @@ def code_to_text(codes, dictionary):
 
 def get_tokenlized(file):
     tokenlized = list()
-    with open(file) as raw:
+    with open(file, encoding='utf-8') as raw:
         for text in raw:
             text = T.tokenize(text.lower())#nltk.word_tokenize(text.lower())
             #text = [item for sublist in text for item in sublist]
