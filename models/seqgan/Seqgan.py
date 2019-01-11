@@ -306,6 +306,7 @@ class Seqgan(Gan):
             with open(self.test_file, 'w', encoding="utf-8") as outfile:
                 outfile.write(code_to_text(codes=codes, dictionary=dict))
 
+        saver = tf.train.Saver()
         self.sess.run(tf.global_variables_initializer())
 
         self.pre_epoch_num = 80
@@ -325,12 +326,16 @@ class Seqgan(Gan):
                 generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
                 get_real_test_file()
                 self.evaluate()
+                save_path = saver.save(self.sess, "/home/hilko/saves/pre_train_gen_{}".format(str(epoch)))
 
         print('start pre-train discriminator:')
         self.reset_epoch()
         for epoch in range(self.pre_epoch_num):
             print('epoch:' + str(epoch))
             self.train_discriminator()
+
+            if epoch % 5 == 0:
+                save_path = saver.save(self.sess, "/home/hilko/saves/pre_train_disc_{}".format(str(epoch)))
 
         self.reset_epoch()
         print('adversarial training:')
@@ -354,6 +359,8 @@ class Seqgan(Gan):
                 generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
                 get_real_test_file()
                 self.evaluate()
+
+                save_path = saver.save(self.sess, "/home/hilko/saves/adv_train_{}".format(str(epoch)))
 
             self.reward.update_params()
             for _ in range(15):
