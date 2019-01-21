@@ -10,10 +10,12 @@ from models.mle.Mle import Mle
 from models.rankgan.Rankgan import Rankgan
 from models.seqgan.Seqgan import Seqgan
 from models.textGan_MMD.Textgan import TextganMmd
+from models.seqgan_cond.SeqganCond import SeqganCond
 
 
 def set_gan(gan_name):
     gans = dict()
+    gans['seqgancond'] = SeqganCond
     gans['seqgan'] = Seqgan
     gans['gsgan'] = Gsgan
     gans['textgan'] = TextganMmd

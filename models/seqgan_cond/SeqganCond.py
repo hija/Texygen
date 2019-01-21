@@ -1,40 +1,21 @@
+import json
 from time import time
 
 from models.Gan import Gan
-from models.textGan_MMD.TextganDataLoader import DataLoader, DisDataloader
-from models.textGan_MMD.TextganDiscriminator import Discriminator
-from models.textGan_MMD.TextganGenerator import Generator
-from utils.metrics.Bleu import Bleu
+from models.seqgan_cond.SeqganCondDataLoader import DataLoader, DisDataloader
+from models.seqgan_cond.SeqganCondDiscriminator import Discriminator
+from models.seqgan_cond.SeqganCondGenerator import Generator
+from models.seqgan_cond.SeqganCondReward import Reward
+from utils.metrics.Cfg import Cfg
 from utils.metrics.EmbSim import EmbSim
 from utils.metrics.Nll import Nll
+from utils.oracle.OracleCfg import OracleCfg
 from utils.oracle.OracleLstm import OracleLstm
+from utils.text_process import *
 from utils.utils import *
 
 
-def generate_samples(sess, trainable_model, batch_size, generated_num, output_file=None, get_code=True):
-    # Generate Samples
-    generated_samples = []
-    for _ in range(int(generated_num / batch_size)):
-        generated_samples.extend(trainable_model.generate(sess))
-
-    codes = list()
-    if output_file is not None:
-        with open(output_file, 'w', encoding='utf-8') as fout:
-            for poem in generated_samples:
-                buffer = ' '.join([str(x) for x in poem]) + '\n'
-                fout.write(buffer)
-                if get_code:
-                    codes.append(poem)
-        return np.array(codes)
-
-    codes = ""
-    for poem in generated_samples:
-        buffer = ' '.join([str(x) for x in poem]) + '\n'
-        codes += buffer
-    return codes
-
-
-class TextganMmd(Gan):
+class SeqganCond(Gan):
     def __init__(self, oracle=None):
         super().__init__()
         # you can change parameters, generator here
@@ -54,32 +35,7 @@ class TextganMmd(Gan):
         self.generator_file = 'save/generator.txt'
         self.test_file = 'save/test_file.txt'
 
-    def init_oracle_trainng(self, oracle=None):
-        if oracle is None:
-            oracle = OracleLstm(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
-                                hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
-                                start_token=self.start_token)
-        self.set_oracle(oracle)
-
-        g_embeddings = tf.Variable(tf.random_normal(shape=[self.vocab_size, self.emb_dim], stddev=0.1))
-        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2,
-                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
-                                      g_embeddings=g_embeddings,
-                                      l2_reg_lambda=self.l2_reg_lambda)
-        self.set_discriminator(discriminator)
-        generator = Generator(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
-                              hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
-                              g_embeddings=g_embeddings, discriminator=discriminator, start_token=self.start_token)
-        self.set_generator(generator)
-
-        gen_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
-        oracle_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
-        dis_dataloader = DisDataloader(batch_size=self.batch_size, seq_length=self.sequence_length)
-
-        self.set_data_loader(gen_loader=gen_dataloader, dis_loader=dis_dataloader, oracle_loader=oracle_dataloader)
-
     def init_metric(self):
-
         nll = Nll(data_loader=self.oracle_data_loader, rnn=self.oracle, sess=self.sess)
         self.add_metric(nll)
 
@@ -88,35 +44,21 @@ class TextganMmd(Gan):
         self.add_metric(inll)
 
         from utils.metrics.DocEmbSim import DocEmbSim
-        docsim = DocEmbSim(oracle_file=self.oracle_file, generator_file=self.generator_file,
-                           num_vocabulary=self.vocab_size)
+        docsim = DocEmbSim(oracle_file=self.oracle_file, generator_file=self.generator_file, num_vocabulary=self.vocab_size)
         self.add_metric(docsim)
 
     def train_discriminator(self):
+        generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
+        self.dis_data_loader.load_train_data(self.oracle_file, self.generator_file)
         for _ in range(3):
-            x_batch, z_h = self.generator.generate(self.sess, True)
-            y_batch = self.gen_data_loader.next_batch()
+            self.dis_data_loader.next_batch()
+            x_batch, y_batch = self.dis_data_loader.next_batch()
             feed = {
                 self.discriminator.input_x: x_batch,
                 self.discriminator.input_y: y_batch,
-                self.discriminator.zh: z_h,
-                self.discriminator.input_x_lable: [[1, 0] for _ in x_batch],
-                self.discriminator.input_y_lable: [[0, 1] for _ in y_batch],
             }
-            _ = self.sess.run(self.discriminator.train_op, feed)
-
-    def train_generator(self):
-        z_h0 = np.random.uniform(low=-.01, high=.01, size=[self.batch_size, self.emb_dim])
-        z_c0 = np.zeros(shape=[self.batch_size, self.emb_dim])
-
-        y_batch = self.gen_data_loader.next_batch()
-        feed = {
-            self.generator.h_0: z_h0,
-            self.generator.c_0: z_c0,
-            self.generator.y: y_batch,
-        }
-        _ = self.sess.run(fetches=self.generator.g_updates, feed_dict=feed)
-        pass
+            loss,_ = self.sess.run([self.discriminator.d_loss, self.discriminator.train_op], feed)
+            print(loss)
 
     def evaluate(self):
         generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
@@ -124,6 +66,7 @@ class TextganMmd(Gan):
             self.oracle_data_loader.create_batches(self.generator_file)
         if self.log is not None:
             if self.epoch == 0 or self.epoch == 1:
+                self.log.write('epochs, ')
                 for metric in self.metrics:
                     self.log.write(metric.get_name() + ',')
                 self.log.write('\n')
@@ -134,6 +77,29 @@ class TextganMmd(Gan):
             return scores
         return super().evaluate()
 
+    def init_oracle_trainng(self, oracle=None):
+        if oracle is None:
+            oracle = OracleLstm(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
+                                hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
+                                start_token=self.start_token)
+        self.set_oracle(oracle)
+
+        generator = Generator(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
+                              hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
+                              start_token=self.start_token)
+        self.set_generator(generator)
+
+        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2, vocab_size=self.vocab_size,
+                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
+                                      l2_reg_lambda=self.l2_reg_lambda)
+        self.set_discriminator(discriminator)
+
+        gen_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
+        oracle_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
+        dis_dataloader = DisDataloader(batch_size=self.batch_size, seq_length=self.sequence_length)
+
+        self.set_data_loader(gen_loader=gen_dataloader, dis_loader=dis_dataloader, oracle_loader=oracle_dataloader)
+
     def train_oracle(self):
         self.init_oracle_trainng()
         self.init_metric()
@@ -141,8 +107,8 @@ class TextganMmd(Gan):
 
         self.pre_epoch_num = 80
         self.adversarial_epoch_num = 100
-        self.log = open('experiment-log-textgan.csv', 'w')
-        oracle_code = generate_samples(self.sess, self.oracle, self.batch_size, self.generate_num, self.oracle_file)
+        self.log = open('experiment-log-SeqganCond.csv', 'w')
+        generate_samples(self.sess, self.oracle, self.batch_size, self.generate_num, self.oracle_file)
         generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
         self.gen_data_loader.create_batches(self.oracle_file)
         self.oracle_data_loader.create_batches(self.generator_file)
@@ -165,39 +131,45 @@ class TextganMmd(Gan):
             self.train_discriminator()
 
         self.reset_epoch()
-        del oracle_code
         print('adversarial training:')
+        self.reward = Reward(self.generator, .8)
         for epoch in range(self.adversarial_epoch_num):
             # print('epoch:' + str(epoch))
             start = time()
-            for index in range(100):
-                self.train_generator()
+            for index in range(1):
+                samples = self.generator.generate(self.sess)
+                rewards = self.reward.get_reward(self.sess, samples, 16, self.discriminator)
+                feed = {
+                    self.generator.x: samples,
+                    self.generator.rewards: rewards
+                }
+                _ = self.sess.run(self.generator.g_updates, feed_dict=feed)
             end = time()
-            print('epoch:' + str(self.epoch) + '\t time:' + str(end - start))
             self.add_epoch()
+            print('epoch:' + str(self.epoch) + '\t time:' + str(end - start))
             if epoch % 5 == 0 or epoch == self.adversarial_epoch_num - 1:
                 generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
                 self.evaluate()
 
+            self.reward.update_params()
             for _ in range(15):
                 self.train_discriminator()
 
     def init_cfg_training(self, grammar=None):
-        from utils.oracle.OracleCfg import OracleCfg
         oracle = OracleCfg(sequence_length=self.sequence_length, cfg_grammar=grammar)
         self.set_oracle(oracle)
         self.oracle.generate_oracle()
         self.vocab_size = self.oracle.vocab_size + 1
-        g_embeddings = tf.Variable(tf.random_normal(shape=[self.vocab_size, self.emb_dim], stddev=0.1))
-        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2,
-                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
-                                      g_embeddings=g_embeddings,
-                                      l2_reg_lambda=self.l2_reg_lambda)
-        self.set_discriminator(discriminator)
+
         generator = Generator(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
                               hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
-                              g_embeddings=g_embeddings, discriminator=discriminator, start_token=self.start_token)
+                              start_token=self.start_token)
         self.set_generator(generator)
+
+        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2, vocab_size=self.vocab_size,
+                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
+                                      l2_reg_lambda=self.l2_reg_lambda)
+        self.set_discriminator(discriminator)
 
         gen_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
         oracle_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
@@ -206,14 +178,10 @@ class TextganMmd(Gan):
         return oracle.wi_dict, oracle.iw_dict
 
     def init_cfg_metric(self, grammar=None):
-        from utils.metrics.Cfg import Cfg
         cfg = Cfg(test_file=self.test_file, cfg_grammar=grammar)
         self.add_metric(cfg)
 
     def train_cfg(self):
-        import json
-        from utils.text_process import get_tokenlized
-        from utils.text_process import code_to_text
         cfg_grammar = """
           S -> S PLUS x | S SUB x |  S PROD x | S DIV x | x | '(' S ')'
           PLUS -> '+'
@@ -238,9 +206,8 @@ class TextganMmd(Gan):
 
         self.pre_epoch_num = 80
         self.adversarial_epoch_num = 100
-        self.log = open('experiment-log-textgan-cfg.csv', 'w')
-        oracle_code = generate_samples(self.sess, self.generator, self.batch_size, self.generate_num,
-                                       self.generator_file)
+        self.log = open('experiment-log-SeqganCond-cfg.csv', 'w')
+        generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
         self.gen_data_loader.create_batches(self.oracle_file)
         self.oracle_data_loader.create_batches(self.generator_file)
         print('start pre-train generator:')
@@ -263,13 +230,19 @@ class TextganMmd(Gan):
 
         self.reset_epoch()
         print('adversarial training:')
-
-        del oracle_code
+        self.reward = Reward(self.generator, .8)
         for epoch in range(self.adversarial_epoch_num):
             # print('epoch:' + str(epoch))
             start = time()
-            for i in range(100):
-                self.train_generator()
+            for index in range(1):
+                samples = self.generator.generate(self.sess)
+                rewards = self.reward.get_reward(self.sess, samples, 16, self.discriminator)
+                feed = {
+                    self.generator.x: samples,
+                    self.generator.rewards: rewards
+                }
+                loss, _ = self.sess.run([self.generator.g_loss, self.generator.g_updates], feed_dict=feed)
+                print(loss)
             end = time()
             self.add_epoch()
             print('epoch:' + str(self.epoch) + '\t time:' + str(end - start))
@@ -278,6 +251,7 @@ class TextganMmd(Gan):
                 get_cfg_test_file()
                 self.evaluate()
 
+            self.reward.update_params()
             for _ in range(15):
                 self.train_discriminator()
         return
@@ -288,17 +262,15 @@ class TextganMmd(Gan):
         if data_loc is None:
             data_loc = 'data/image_coco.txt'
         self.sequence_length, self.vocab_size = text_precess(data_loc)
-
-        g_embeddings = tf.Variable(tf.random_normal(shape=[self.vocab_size, self.emb_dim], stddev=0.1))
-        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2,
-                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
-                                      g_embeddings=g_embeddings,
-                                      l2_reg_lambda=self.l2_reg_lambda)
-        self.set_discriminator(discriminator)
         generator = Generator(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
                               hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
-                              g_embeddings=g_embeddings, discriminator=discriminator, start_token=self.start_token)
+                              start_token=self.start_token)
         self.set_generator(generator)
+
+        discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2, vocab_size=self.vocab_size,
+                                      emd_dim=self.emb_dim, filter_sizes=self.filter_size, num_filters=self.num_filters,
+                                      l2_reg_lambda=self.l2_reg_lambda)
+        self.set_discriminator(discriminator)
 
         gen_dataloader = DataLoader(batch_size=self.batch_size, seq_length=self.sequence_length)
         oracle_dataloader = None
@@ -314,13 +286,13 @@ class TextganMmd(Gan):
 
     def init_real_metric(self):
         from utils.metrics.DocEmbSim import DocEmbSim
-        docsim = DocEmbSim(oracle_file=self.oracle_file, generator_file=self.generator_file,
-                           num_vocabulary=self.vocab_size)
+        docsim = DocEmbSim(oracle_file=self.oracle_file, generator_file=self.generator_file, num_vocabulary=self.vocab_size)
         self.add_metric(docsim)
 
         inll = Nll(data_loader=self.gen_data_loader, rnn=self.generator, sess=self.sess)
         inll.set_name('nll-test')
         self.add_metric(inll)
+
 
     def train_real(self, data_loc=None):
         from utils.text_process import code_to_text
@@ -329,25 +301,17 @@ class TextganMmd(Gan):
         self.init_real_metric()
 
         def get_real_test_file(dict=iw_dict):
-            with open(self.generator_file, 'r') as file:
+            with open(self.generator_file, 'r', encoding="utf-8") as file:
                 codes = get_tokenlized(self.generator_file)
-            with open(self.test_file, 'w') as outfile:
+            with open(self.test_file, 'w', encoding="utf-8") as outfile:
                 outfile.write(code_to_text(codes=codes, dictionary=dict))
 
-        def get_real_code():
-            text = get_tokenlized(self.oracle_file)
-
-            def toint_list(x):
-                return list(map(int, x))
-
-            codes = list(map(toint_list, text))
-            return codes
-
+        saver = tf.train.Saver()
         self.sess.run(tf.global_variables_initializer())
 
         self.pre_epoch_num = 80
         self.adversarial_epoch_num = 100
-        self.log = open('experiment-log-textgan-real.csv', 'w')
+        self.log = open('experiment-log-SeqganCond-real.csv', 'w')
         generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
         self.gen_data_loader.create_batches(self.oracle_file)
 
@@ -362,27 +326,42 @@ class TextganMmd(Gan):
                 generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
                 get_real_test_file()
                 self.evaluate()
+                save_path = saver.save(self.sess, "/home/hilko/saves/pre_train_gen_{}".format(str(epoch)))
 
         print('start pre-train discriminator:')
         self.reset_epoch()
         for epoch in range(self.pre_epoch_num):
             print('epoch:' + str(epoch))
             self.train_discriminator()
-        oracle_code = get_real_code()
 
+            if epoch % 5 == 0:
+                save_path = saver.save(self.sess, "/home/hilko/saves/pre_train_disc_{}".format(str(epoch)))
 
+        self.reset_epoch()
         print('adversarial training:')
+        self.reward = Reward(self.generator, .8)
         for epoch in range(self.adversarial_epoch_num):
             # print('epoch:' + str(epoch))
             start = time()
-            for index in range(100):
-                self.train_generator()
+            for index in range(1):
+                samples = self.generator.generate(self.sess)
+                rewards = self.reward.get_reward(self.sess, samples, 16, self.discriminator)
+                feed = {
+                    self.generator.x: samples,
+                    self.generator.rewards: rewards
+                }
+                loss, _ = self.sess.run([self.generator.g_loss, self.generator.g_updates], feed_dict=feed)
+                print(loss)
             end = time()
-            print('epoch:' + str(self.epoch) + '\t time:' + str(end - start))
             self.add_epoch()
+            print('epoch:' + str(self.epoch) + '\t time:' + str(end - start))
             if epoch % 5 == 0 or epoch == self.adversarial_epoch_num - 1:
                 generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
+                get_real_test_file()
                 self.evaluate()
 
+                save_path = saver.save(self.sess, "/home/hilko/saves/adv_train_{}".format(str(epoch)))
+
+            self.reward.update_params()
             for _ in range(15):
                 self.train_discriminator()

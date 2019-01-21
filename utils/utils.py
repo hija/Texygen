@@ -9,7 +9,7 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
         generated_samples.extend(trainable_model.generate(sess))
     codes = list()
     if output_file is not None:
-        with open(output_file, 'w') as fout:
+        with open(output_file, 'w', encoding='utf-8') as fout:
             for poem in generated_samples:
                 buffer = ' '.join([str(x) for x in poem]) + '\n'
                 fout.write(buffer)

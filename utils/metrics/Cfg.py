@@ -2,6 +2,9 @@ import nltk
 
 from utils.metrics.Metrics import Metrics
 
+from nltk.tokenize import TweetTokenizer
+
+T = TweetTokenizer()
 
 class Cfg(Metrics):
     def __init__(self, cfg_grammar=None, test_file=None):
@@ -31,7 +34,7 @@ class Cfg(Metrics):
                     continue
                 else:
                     total_num += 1
-                    s = nltk.word_tokenize(s)
+                    s = T.tokenize(s)
                     for _ in self.parser.parse(s):
                         valid_num += 1
                         break

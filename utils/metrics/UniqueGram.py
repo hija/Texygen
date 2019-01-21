@@ -5,6 +5,10 @@ import nltk
 from utils.metrics.Metrics import Metrics
 from nltk import ngrams
 
+from nltk.tokenize import TweetTokenizer
+
+T = TweetTokenizer()
+
 class UniqueGram(Metrics):
     def __init__(self, test_text='', gram=3):
         super().__init__()
@@ -48,7 +52,7 @@ class UniqueGram(Metrics):
             reference = list()
             with open(self.test_data) as test_text:
                 for text in test_text:
-                    text = nltk.word_tokenize(text)
+                    text = T.tokenize(text)
                     reference.append(text)
             self.reference = reference
             return reference
@@ -90,7 +94,7 @@ class UniqueGram(Metrics):
         result = list()
         with open(self.test_data) as test_data:
             for hypothesis in test_data:
-                hypothesis = nltk.word_tokenize(hypothesis)
+                hypothesis = T.tokenize(hypothesis)
                 result.append(pool.apply_async(self.calc_ng, args=(reference, hypothesis, weight)))
         score = 0.0
         cnt = 0

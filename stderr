@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File ".\main.py", line 93, in <module>
+    parse_cmd(sys.argv[1:])
+  File ".\main.py", line 75, in parse_cmd
+    gan_func(opt_arg['-d'])
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\models\seqgan_cond\SeqganCond.py", line 328, in train_real
+    self.evaluate()
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\models\seqgan_cond\SeqganCond.py", line 73, in evaluate
+    scores = super().evaluate()
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\models\Gan.py", line 57, in evaluate
+    score = metric.get_score()
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\utils\metrics\DocEmbSim.py", line 33, in get_score
+    self.get_oracle_sim()
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\utils\metrics\DocEmbSim.py", line 153, in get_oracle_sim
+    self.oracle_sim = self.get_wordvec(self.oracle_file)
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\utils\metrics\DocEmbSim.py", line 102, in get_wordvec
+    self.get_frequent_word()
+  File "E:\Users\Hilko\Dokumente\OwnTexyGen\utils\metrics\DocEmbSim.py", line 47, in get_frequent_word
+    text = list(map(int, text))
+ValueError: invalid literal for int() with base 10: '428 1399'
