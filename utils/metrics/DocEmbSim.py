@@ -43,10 +43,16 @@ class DocEmbSim(Metrics):
         words = []
         with open(self.oracle_file, 'r') as file:
             for line in file:
-                line = [item for sublist in [x.split() for x in line] for item in sublist]
-                text = T.tokenize(line)
-                text = list(map(int, text))
-                words += text
+                #linet = line
+                #line = [item for sublist in [x.split() for x in line] for item in sublist]
+                try:
+                    text = nltk.word_tokenize(line)#split()#T.tokenize(line)
+                    text = list(map(int, text))
+                    words += text
+                except Exception as e:
+                    print('EXCEPTION!')
+                    print(linet)
+                    print(e)
         counts = collections.Counter(words)
         new_list = sorted(words, key=lambda x: -counts[x])
         word_set = list(set(new_list))
@@ -61,8 +67,14 @@ class DocEmbSim(Metrics):
         words = []
         with open(file, 'r') as file:
             for line in file:
-                text = T.tokenize(line)
-                words.append(text)
+                try:
+                    text = nltk.word_tokenize(line)#T.tokenize(line)
+                    words.append(text)
+                except Exception as e:
+                    print('EXCEPTION!')
+                    print(line)
+                    #print(text)
+                    print(e)
         return words
 
     def generate_batch(self, batch_size, num_skips, skip_window, data=None):
