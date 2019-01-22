@@ -77,19 +77,21 @@ def get_dict(word_set):
     return word_index_dict, index_word_dict
 
 def text_precess(train_text_loc, test_text_loc=None):
-    train_tokens = get_tokenlized(train_text_loc)
+    train_tokens = get_tokenlized(train_text_loc) # Gets the tokenized training file
     if test_text_loc is None:
         test_tokens = list()
     else:
         test_tokens = get_tokenlized(test_text_loc)
-    word_set = get_word_list(train_tokens + test_tokens)
-    [word_index_dict, index_word_dict] = get_dict(word_set)
+    word_set = get_word_list(train_tokens + test_tokens) # A set of all possible words
+    [word_index_dict, index_word_dict] = get_dict(word_set) # Mapping Word->Int and Int->Word
 
     if test_text_loc is None:
-        sequence_len = len(max(train_tokens, key=len))
+        sequence_len = len(max(train_tokens, key=len)) #sequence length == maximum length of all sequences
     else:
         sequence_len = max(len(max(train_tokens, key=len)), len(max(test_tokens, key=len)))
-    with open('save/eval_data.txt', 'w') as outfile:
+    with open('save/eval_data.txt', 'w') as outfile: #create file eval_data
+        # Create a file which maps test sequences -> int
         outfile.write(text_to_code(test_tokens, word_index_dict, sequence_len))
 
+    ### RETURNS: Sequence Length of longest sequence in dataset + EOF index
     return sequence_len, len(word_index_dict) + 1

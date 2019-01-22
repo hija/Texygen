@@ -76,6 +76,8 @@ class Reward(object):
         self.gen_x = self.gen_x.stack()  # seq_length x batch_size
         self.gen_x = tf.transpose(self.gen_x, perm=[1, 0])  # batch_size x seq_length
 
+
+    ### Important function, used in SeqGanCond
     def get_reward(self, sess, input_x, rollout_num, discriminator):
         rewards = []
         for i in range(rollout_num):

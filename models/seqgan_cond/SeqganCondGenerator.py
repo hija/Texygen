@@ -127,6 +127,11 @@ class Generator(object):
         return outputs
 
     def pretrain_step(self, sess, x):
+        # This runs the current session exact one training step
+        # x is the input, the output is returned.
+
+        ##This method runs one "step" of TensorFlow computation, by running the necessary graph fragment to execute every Operation and evaluate every Tensor in fetches, substituting the values in feed_dict for the corresponding input values.
+        
         outputs = sess.run([self.pretrain_updates, self.pretrain_loss], feed_dict={self.x: x})
         return outputs
 
