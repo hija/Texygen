@@ -35,6 +35,7 @@ class SeqganCond(Gan):
         self.oracle_file = 'save/oracle.txt'
         self.generator_file = 'save/generator.txt'
         self.test_file = 'save/test_file.txt'
+        self.one_hot_encoding_file = 'save/one_hot_encoding_file.txt'
 
     def init_metric(self):
         nll = Nll(data_loader=self.oracle_data_loader, rnn=self.oracle, sess=self.sess)
@@ -78,7 +79,7 @@ class SeqganCond(Gan):
         generate_samples(self.sess, self.generator, self.batch_size, self.generate_num, self.generator_file)
         if self.oracle_data_loader is not None:
             # It is none in other case, so nvm.
-            self.oracle_data_loader.create_batches(self.generator_file)
+            self.oracle_data_loader.create_batches(self.generator_file, self.one_hot_encoding_file)
         if self.log is not None:
             if self.epoch == 0 or self.epoch == 1:
 
@@ -309,12 +310,24 @@ class SeqganCond(Gan):
         tokens = get_tokenlized(data_loc) # Get the tokenized sequences
         word_set = get_word_list(tokens) # Get the set of words (Notice: This has been done in text_precess before, so its pretty inefficient)
 
+        ### My stuff
+        relevant_word_set = get_relevant_word_set(word_set)
+        #print('Word set length:', len(word_set))
+        #print('Relevant word set length:', len(relevant_word_set))
+        tokens_onehot_encoded = get_tokens_onehot_encoded(relevant_word_set, tokens)
+
         [word_index_dict, index_word_dict] = get_dict(word_set) # Gets the word->Index and Index-> Word mapping for the words
         with open(self.oracle_file, 'w') as outfile:
             # Now we create an oracle file
             # This oracle file contains all our sequences encoded to integers
             # If the sentence is not long enough, i.e. < sequence length, it gets filled up with EOF characters
             outfile.write(text_to_code(tokens, word_index_dict, self.sequence_length))
+
+        with open(self.one_hot_encoding_file, 'w', encoding='utf-8') as outfile:
+            # First line: The words!
+            print(*relevant_word_set, sep=' ', file=outfile)
+            for token_onehot_encoded in tokens_onehot_encoded:
+                print(*token_onehot_encoded, file = outfile)
         return word_index_dict, index_word_dict # We return the word->Index and Index->Word Mapping
 
     def init_real_metric(self):
@@ -360,7 +373,7 @@ class SeqganCond(Gan):
         # Remember: In init_real_training we wrote the content of our training dataset into the oracle file encoded with integers
         # So, we are using the dataset as input (more or less)
         # --> Verified
-        self.gen_data_loader.create_batches(self.oracle_file)
+        self.gen_data_loader.create_batches(self.oracle_file, self.one_hot_encoding_file)
 
         print('start pre-train generator:')
         for epoch in range(self.pre_epoch_num):

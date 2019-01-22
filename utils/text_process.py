@@ -76,6 +76,23 @@ def get_dict(word_set):
         index += 1
     return word_index_dict, index_word_dict
 
+def get_relevant_word_set(word_set):
+    from nltk.corpus import stopwords
+    stopWords = set(stopwords.words('english'))
+    return list(filter(lambda x: x not in stopWords, word_set))
+
+def get_tokens_onehot_encoded(relevant_word_set, tokenized):
+    ## Generates a one hot encoding
+    one_hot_encoded_tokens = []
+    for tokenized_str in tokenized:
+        one_hot_encoded_token = [0] * len(relevant_word_set) # create one hot encoding
+        for word in tokenized_str:
+            if word in relevant_word_set: # If the current word is in the relevant words
+                one_hot_encoded_token[relevant_word_set.index(word)] = 1
+        one_hot_encoded_tokens.append(one_hot_encoded_token)
+    return one_hot_encoded_tokens
+
+
 def text_precess(train_text_loc, test_text_loc=None):
     train_tokens = get_tokenlized(train_text_loc) # Gets the tokenized training file
     if test_text_loc is None:

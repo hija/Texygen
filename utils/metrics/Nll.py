@@ -24,7 +24,7 @@ class Nll(Metrics):
         nll = []
         self.data_loader.reset_pointer()
         for it in range(self.data_loader.num_batch):
-            batch = self.data_loader.next_batch()
+            batch, one_hot_encoding  = self.data_loader.next_batch()
             # fixme bad taste
             try:
                 g_loss = self.rnn.get_nll(self.sess, batch)

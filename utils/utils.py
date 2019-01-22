@@ -41,7 +41,7 @@ def pre_train_epoch(sess, trainable_model, data_loader):
     data_loader.reset_pointer()
 
     for it in range(data_loader.num_batch):
-        batch = data_loader.next_batch()
+        batch, one_hot_encoding = data_loader.next_batch()
 
         # And now we do the pretrrain step, i.e. we do one batch iteration
         # --> Look at SeqganCondGenerator
