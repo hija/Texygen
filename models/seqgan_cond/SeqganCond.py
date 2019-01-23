@@ -284,12 +284,12 @@ class SeqganCond(Gan):
         from utils.text_process import get_tokenlized, get_word_list, get_dict
         if data_loc is None:
             data_loc = 'data/image_coco.txt'
-        self.sequence_length, self.vocab_size = text_precess(data_loc)
+        self.sequence_length, self.vocab_size, self.relevant_word_length = text_precess(data_loc)
 
         #Notice: No real data stuff is done here, just general initializiation...
         generator = Generator(num_vocabulary=self.vocab_size, batch_size=self.batch_size, emb_dim=self.emb_dim,
                               hidden_dim=self.hidden_dim, sequence_length=self.sequence_length,
-                              start_token=self.start_token)
+                              start_token=self.start_token, relevant_word_length = self.relevant_word_length)
         self.set_generator(generator) # Just a normal setter method, possibly as an easier interface to extension or so
 
         discriminator = Discriminator(sequence_length=self.sequence_length, num_classes=2, vocab_size=self.vocab_size,

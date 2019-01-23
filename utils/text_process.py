@@ -111,4 +111,4 @@ def text_precess(train_text_loc, test_text_loc=None):
         outfile.write(text_to_code(test_tokens, word_index_dict, sequence_len))
 
     ### RETURNS: Sequence Length of longest sequence in dataset + EOF index
-    return sequence_len, len(word_index_dict) + 1
+    return sequence_len, len(word_index_dict) + 1, len(get_relevant_word_set(word_set))

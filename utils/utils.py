@@ -45,7 +45,7 @@ def pre_train_epoch(sess, trainable_model, data_loader):
 
         # And now we do the pretrrain step, i.e. we do one batch iteration
         # --> Look at SeqganCondGenerator
-        _, g_loss = trainable_model.pretrain_step(sess, batch)
+        _, g_loss = trainable_model.pretrain_step(sess, batch, one_hot_encoding)
 
         # And we apply the loss to our losses array
         supervised_g_losses.append(g_loss)

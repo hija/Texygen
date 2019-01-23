@@ -27,8 +27,8 @@ class Nll(Metrics):
             batch, one_hot_encoding  = self.data_loader.next_batch()
             # fixme bad taste
             try:
-                g_loss = self.rnn.get_nll(self.sess, batch)
+                g_loss = self.rnn.get_nll(self.sess, batch, one_hot_encoding)
             except Exception as e:
-                g_loss = self.sess.run(self.rnn.pretrain_loss, {self.rnn.x: batch})
+                g_loss = self.sess.run(self.rnn.pretrain_loss, {self.rnn.x: batch, self.rnn.y: one_hot_encoding})
             nll.append(g_loss)
         return np.mean(nll)
