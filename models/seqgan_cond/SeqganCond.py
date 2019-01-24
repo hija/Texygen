@@ -360,8 +360,8 @@ class SeqganCond(Gan):
         self.sess.run(tf.global_variables_initializer())
 
         # Just some parameters, randomly posted inside a function where no one will ever find them and wonders why changing parameters does not work
-        self.pre_epoch_num = 80
-        self.adversarial_epoch_num = 100
+        self.pre_epoch_num = 5
+        self.adversarial_epoch_num = 10
         self.log = open('experiment-log-SeqganCond-real.csv', 'w') # In this file the metrice's output will be saved
 
         #### PRE-TRAIING STUFF
