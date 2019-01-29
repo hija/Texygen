@@ -6,6 +6,10 @@ from nltk.translate.bleu_score import SmoothingFunction
 
 from utils.metrics.Metrics import Metrics
 
+from nltk.tokenize import TweetTokenizer
+
+T = TweetTokenizer()
+
 
 class Bleu(Metrics):
     def __init__(self, test_text='', real_text='', gram=3):
@@ -36,7 +40,7 @@ class Bleu(Metrics):
             reference = list()
             with open(self.real_data) as real_data:
                 for text in real_data:
-                    text = nltk.word_tokenize(text)
+                    text = T.tokenize(text)
                     reference.append(text)
             self.reference = reference
             return reference
@@ -50,7 +54,7 @@ class Bleu(Metrics):
         weight = tuple((1. / ngram for _ in range(ngram)))
         with open(self.test_data) as test_data:
             for hypothesis in test_data:
-                hypothesis = nltk.word_tokenize(hypothesis)
+                hypothesis = T.tokenize(hypothesis)
                 bleu.append(nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weight,
                                                                     smoothing_function=SmoothingFunction().method1))
         return sum(bleu) / len(bleu)
@@ -74,7 +78,7 @@ class Bleu(Metrics):
         result = list()
         with open(self.test_data) as test_data:
             for hypothesis in test_data:
-                hypothesis = nltk.word_tokenize(hypothesis)
+                hypothesis = T.tokenize(hypothesis)
                 result.append(pool.apply_async(self.calc_bleu, args=(reference, hypothesis, weight)))
         score = 0.0
         cnt = 0

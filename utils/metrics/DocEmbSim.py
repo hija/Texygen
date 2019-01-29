@@ -9,6 +9,9 @@ from scipy.spatial.distance import cosine
 
 from utils.metrics.Metrics import Metrics
 
+from nltk.tokenize import TweetTokenizer
+
+T = TweetTokenizer()
 
 class DocEmbSim(Metrics):
     def __init__(self, oracle_file=None, generator_file=None, num_vocabulary = None):
@@ -40,7 +43,7 @@ class DocEmbSim(Metrics):
         words = []
         with open(self.oracle_file, 'r') as file:
             for line in file:
-                text = nltk.word_tokenize(line)
+                text = T.tokenize(line)
                 text = list(map(int, text))
                 words += text
         counts = collections.Counter(words)
@@ -57,7 +60,7 @@ class DocEmbSim(Metrics):
         words = []
         with open(file, 'r') as file:
             for line in file:
-                text = nltk.word_tokenize(line)
+                text = T.tokenize(line)
                 words.append(text)
         return words
 
