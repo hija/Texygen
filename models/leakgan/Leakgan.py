@@ -33,7 +33,7 @@ def generate_samples_gen(sess, trainable_model, batch_size, generated_num, outpu
 
     codes = list()
     if output_file is not None:
-        with open(output_file, 'w') as fout:
+        with open(output_file, 'w', encoding='utf-8') as fout:
             for poem in generated_samples:
                 buffer = ' '.join([str(x) for x in poem]) + '\n'
                 fout.write(buffer)
@@ -415,7 +415,7 @@ class Leakgan(Gan):
         def get_real_test_file(dict=iw_dict):
             with open(self.generator_file, 'r') as file:
                 codes = get_tokenlized(self.generator_file)
-            with open(self.test_file, 'w') as outfile:
+            with open(self.test_file, 'w', encoding='utf-8') as outfile:
                 outfile.write(code_to_text(codes=codes, dictionary=dict))
 
         self.sess.run(tf.global_variables_initializer())
@@ -489,4 +489,3 @@ class Leakgan(Gan):
             for epoch_ in range(5):
                 print('epoch:' + str(epoch) + '--' + str(epoch_))
                 self.train_discriminator()
-

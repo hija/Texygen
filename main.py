@@ -51,33 +51,38 @@ def set_training(gan, training_method):
 
 
 def parse_cmd(argv):
-    try:
-        opts, args = getopt.getopt(argv, "hg:t:d:")
 
-        opt_arg = dict(opts)
-        if '-h' in opt_arg.keys():
-            print('usage: python main.py -g <gan_type>')
-            print('       python main.py -g <gan_type> -t <train_type>')
-            print('       python main.py -g <gan_type> -t real -d <your_data_location>')
-            sys.exit(0)
-        if not '-g' in opt_arg.keys():
-            print('unspecified GAN type, use MLE training only...')
-            gan = set_gan('mle')
-        else:
-            gan = set_gan(opt_arg['-g'])
-        if not '-t' in opt_arg.keys():
-            gan.train_oracle()
-        else:
-            gan_func = set_training(gan, opt_arg['-t'])
-            if opt_arg['-t'] == 'real' and '-d' in opt_arg.keys():
-                gan_func(opt_arg['-d'])
-            else:
-                gan_func()
-    except getopt.GetoptError:
-        print('invalid arguments!')
-        print('`python main.py -h`  for help')
-        sys.exit(-1)
-    pass
+    gan = set_gan('leakgan')
+    gan_func = set_training(gan, 'real')
+    gan_func('data/debug.txt')
+
+    # try:
+    #     opts, args = getopt.getopt(argv, "hg:t:d:")
+    #
+    #     opt_arg = dict(opts)
+    #     if '-h' in opt_arg.keys():
+    #         print('usage: python main.py -g <gan_type>')
+    #         print('       python main.py -g <gan_type> -t <train_type>')
+    #         print('       python main.py -g <gan_type> -t real -d <your_data_location>')
+    #         sys.exit(0)
+    #     if not '-g' in opt_arg.keys():
+    #         print('unspecified GAN type, use MLE training only...')
+    #         gan = set_gan('mle')
+    #     else:
+    #         gan = set_gan(opt_arg['-g'])
+    #     if not '-t' in opt_arg.keys():
+    #         gan.train_oracle()
+    #     else:
+    #         gan_func = set_training(gan, opt_arg['-t'])
+    #         if opt_arg['-t'] == 'real' and '-d' in opt_arg.keys():
+    #             gan_func(opt_arg['-d'])
+    #         else:
+    #             gan_func()
+    # except getopt.GetoptError:
+    #     print('invalid arguments!')
+    #     print('`python main.py -h`  for help')
+    #     sys.exit(-1)
+    # pass
 
 
 if __name__ == '__main__':
