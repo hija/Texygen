@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 from utils.utils import init_sess
+import sys
 
 
 class Gan:
@@ -13,6 +14,7 @@ class Gan:
         self.oracle_data_loader = None
         self.sess = init_sess()
         self.metrics = list()
+        self.best_values = list()
         self.epoch = 0
         self.pre_epoch_num = 80
         self.adversarial_epoch_num = 100
@@ -38,6 +40,7 @@ class Gan:
 
     def add_metric(self, metric):
         self.metrics.append(metric)
+        self.best_values.append(sys.maxsize-1)
 
     def add_epoch(self):
         self.epoch += 1

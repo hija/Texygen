@@ -10,6 +10,7 @@ from utils.metrics.EmbSim import EmbSim
 from utils.metrics.Nll import Nll
 from utils.oracle.OracleLstm import OracleLstm
 from utils.utils import *
+from shutil import copyfile
 
 
 def pre_train_epoch_gen(sess, trainable_model, data_loader):
@@ -147,8 +148,18 @@ class Leakgan(Gan):
                     self.log.write(metric.get_name() + ',')
                 self.log.write('\n')
             scores = super().evaluate()
-            for score in scores:
+            for i, score in enumerate(scores): # Totally intuetively, the first value of the score array is the epoch - smileyface
                 self.log.write(str(score) + ',')
+
+                if i == 0: # We don't nee the epoch as inidcator for quality
+                    continue
+                if(self.best_values[i-1] > score): ## Assume we minimize
+                    copyfile('save/test_file.txt', 'save/best_{}.txt'.format(self.metrics[i-1].get_name()))
+                    self.best_values[i-1] = score
+
+                    saver = tf.train.Saver()
+                    saver.save(self.sess, 'save/best_{}_model.ckpt'.format(self.metrics[i-1].get_name()))
+
             self.log.write('\n')
             return scores
         return super().evaluate()
