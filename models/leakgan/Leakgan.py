@@ -500,3 +500,8 @@ class Leakgan(Gan):
             for epoch_ in range(5):
                 print('epoch:' + str(epoch) + '--' + str(epoch_))
                 self.train_discriminator()
+
+        copyfile('save/test_file.txt', 'save/final.txt')
+
+        saver = tf.train.Saver()
+        saver.save(self.sess, 'save/final_model.ckpt')
