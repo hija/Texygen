@@ -158,7 +158,7 @@ class Leakgan(Gan):
                     self.best_values[i-1] = score
 
                     saver = tf.train.Saver()
-                    saver.save(self.sess, 'save/best_{}_model.ckpt'.format(self.metrics[i-1].get_name()))
+                    saver.save(self.sess, 'save/2best_{}_model.ckpt'.format(self.metrics[i-1].get_name()))
 
             self.log.write('\n')
             return scores
@@ -431,6 +431,11 @@ class Leakgan(Gan):
 
         self.sess.run(tf.global_variables_initializer())
 
+
+        #### Reload old session
+        saver = tf.train.Saver()
+
+
         self.pre_epoch_num = 80
         self.adversarial_epoch_num = 100
         self.log = open('experiment-log-leakgan-real.csv', 'w')
@@ -441,7 +446,9 @@ class Leakgan(Gan):
             g = self.sess.run(self.generator.gen_x, feed_dict={self.generator.drop_out: 1, self.generator.train: 1})
 
         print('start pre-train generator:')
-        for epoch in range(self.pre_epoch_num):
+        saver.restore(self.sess, "/tmp/best_nll-test_model.ckpt")
+
+        for epoch in range(6, self.pre_epoch_num):
             start = time()
             loss = pre_train_epoch_gen(self.sess, self.generator, self.gen_data_loader)
             end = time()
